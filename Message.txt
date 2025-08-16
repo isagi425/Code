@@ -1,225 +1,189 @@
 // ==UserScript==
-// @name         Smoker OP UI – Full Mock
-// @namespace    https://yourscripts.local
-// @version      2.0
-// @description  Flashy OP UI: toast, fake Discord auth, draggable launcher, supported links panel (mock only). Safe & cosmetic only.
+// @name         Smoker OP UI Loader
+// @namespace    https://smokerui.local/
+// @version      1.2
+// @description  Flashy UI with fake authentication popup on supported links
 // @author       You
-// @match        *://*/*
-// @grant        GM_addStyle
+//
+// === Supported Keysystems ===
+/* Platoboost, Codex, Relzhub, Arceusx, Xerohub, KeyRBLX, KeyGuardian, KRNL,
+   ArcHub, TheBasement.ink, Nixius, Pandadevelopment, Ads Luarmor, Overdrive Hub,
+   BTTeam, Trigon, Nicuse, 404063, Neoxhub, Volcano, Quartyz, OverHub, Blox-script,
+   Dracula Hub, Fluxus */
+// @match        *://*.platoboost.com/*
+// @match        *://*.codex.lol/*
+// @match        *://*.relzhub.com/*
+// @match        *://*.arceusx.net/*
+// @match        *://*.xerohub.com/*
+// @match        *://*.keyrblx.com/*
+// @match        *://*.keyguardian.com/*
+// @match        *://*.krnl.ca/*
+// @match        *://*.archub.net/*
+// @match        *://*.thebasement.ink/*
+// @match        *://*.nixius.net/*
+// @match        *://*.pandadevelopment.net/*
+// @match        *://*.luarmor.net/*
+// @match        *://*.overdrivehub.net/*
+// @match        *://*.btteam.net/*
+// @match        *://*.trigon.io/*
+// @match        *://*.nicuse.dev/*
+// @match        *://*.404063.com/*
+// @match        *://*.neoxhub.net/*
+// @match        *://*.volcanohub.net/*
+// @match        *://*.quartyz.net/*
+// @match        *://*.overhub.net/*
+// @match        *://*.blox-script.com/*
+// @match        *://*.draculahub.net/*
+// @match        *://*.fluxus.dev/*
+//
+// === Supported Ad-links ===
+/* Rekonise, Linkvertise, Lootlabs, Work.ink, Sub2Unlock, Sub4Unlock, BStlar,
+   ldnesfspublic, MBoost.me, SocialWolvez, Boost.ink, Stfly, Cuty.io, Lockr.so,
+   ScriptPastebin, Linkunlocker, Rinku.pro */
+// @match        *://*.rekonise.com/*
+// @match        *://*.linkvertise.com/*
+// @match        *://*.lootlabs.io/*
+// @match        *://*.work.ink/*
+// @match        *://*.sub2unlock.net/*
+// @match        *://*.sub4unlock.com/*
+// @match        *://*.bstlar.com/*
+// @match        *://*.ldnesfspublic.com/*
+// @match        *://*.mboost.me/*
+// @match        *://*.socialwolvez.com/*
+// @match        *://*.boost.ink/*
+// @match        *://*.stfly.me/*
+// @match        *://*.cuty.io/*
+// @match        *://*.lockr.so/*
+// @match        *://*.scriptpastebin.com/*
+// @match        *://*.linkunlocker.com/*
+// @match        *://*.rinku.pro/*
+//
+// === Supported Paste sites ===
+/* Pastebin, Paster.so, Paste-drop.com, Work.ink, Esohasl.net, Pastes.io,
+   Pastefy, ScriptPastebin */
+// @match        *://*.pastebin.com/*
+// @match        *://*.paster.so/*
+// @match        *://*.paste-drop.com/*
+// @match        *://*.esohasl.net/*
+// @match        *://*.pastes.io/*
+// @match        *://*.pastefy.ga/*
+// @match        *://*.scriptpastebin.com/*
+//
 // ==/UserScript==
 
-(function () {
-  "use strict";
+(function() {
+  'use strict';
 
-  // ========= CONFIG =========
-  const TARGET_HOSTS = [
-    "example.com", // Replace with your site(s) (e.g. "discord.com")
-  ];
-  const BRAND = "Smoker UI";
-  const LOADED_TEXT = "🔥 Smoker UserScript fully loaded!";
-
-  // Supported links data
-  const SUPPORTED = {
-    "🔐 Keysystems": [
-      "Platoboost","Codex","Relzhub","Arceusx","Xerohub","KeyRBLX","KeyGuardian","KRNL",
-      "ArcHub","TheBasement.ink","Nixius (instant)","Pandadevelopment","Ads Luarmor",
-      "Overdrive Hub","BTTeam","Trigon","Nicuse","404063","Neoxhub","Volcano","Quartyz",
-      "OverHub","Blox-script","Dracula Hub","Fluxus (unstable)"
-    ],
-    "🔗 Ad-links": [
-      "Rekonise","Linkvertise","Lootlabs","Work.ink","Sub2Unlock","Sub4Unlock","BStlar",
-      "ldnesfspublic","MBoost.me","SocialWolvez","Boost.ink","Stfly","Cuty.io","Lockr.so",
-      "ScriptPastebin","Linkunlocker","Rinku.pro"
-    ],
-    "📜 Paste": [
-      "Pastebin","Paster.so","Paste-drop.com","Work.ink","Esohasl.net","Pastes.io",
-      "Pastefy","ScriptPastebin"
-    ]
-  };
-  // ==========================
-
-  const hostOK = TARGET_HOSTS.some(h => location.hostname === h || location.hostname.endsWith("." + h));
-  if (!hostOK) return;
-
-  // ---------- Styles ----------
-  GM_addStyle(`
-    :root {
-      --smk-bg: #1f2333;
-      --smk-bg-2: #151828;
-      --smk-accent: #5865F2;
-      --smk-text: #e7e9ee;
-      --smk-muted: #a7aec3;
-      --smk-danger: #ff4d4f;
-      --smk-green: #10b981;
-      --smk-shadow: 0 12px 30px rgba(0,0,0,.35);
-      --smk-radius: 16px;
-    }
-
-    .smk-toast {
+  // --- Inject Styles ---
+  const style = document.createElement("style");
+  style.textContent = `
+    .op-toast {
       position: fixed;
-      top: 20px; left: 50%;
-      transform: translateX(-50%) translateY(-10px);
-      background: linear-gradient(90deg, var(--smk-accent), #3a3a9f);
-      color: #fff; padding: 12px 20px;
-      border-radius: 12px; font-weight: 700;
-      box-shadow: var(--smk-shadow);
-      z-index: 2147483647; opacity: 0;
-      animation: smkFadeIn .6s ease forwards, smkFadeOut .7s ease 3.2s forwards;
-      pointer-events: none;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, #5865F2, #3a3a9f);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 6px 20px rgba(0,0,0,.3);
+      animation: fadeIn 1s, fadeOut 1s 3s forwards;
+      z-index: 99999;
     }
-    @keyframes smkFadeIn { to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    @keyframes smkFadeOut { to { opacity: 0; transform: translateX(-50%) translateY(-10px);} }
+    @keyframes fadeIn { from {opacity:0; transform:translate(-50%,-20px);} to {opacity:1; transform:translate(-50%,0);} }
+    @keyframes fadeOut { to {opacity:0; transform:translate(-50%,-20px);} }
 
-    .smk-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.6);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 2147483646;
-      animation: smkOverlay .2s ease;
+    .op-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99998;
     }
-    @keyframes smkOverlay { from{opacity:0} to{opacity:1} }
-
-    .smk-modal {
-      width: 380px; max-width: 92vw;
-      background: linear-gradient(180deg, var(--smk-bg), var(--smk-bg-2));
-      color: var(--smk-text);
-      border-radius: var(--smk-radius);
-      box-shadow: var(--smk-shadow);
-      padding: 22px; text-align: center;
-      transform: translateY(10px) scale(.98);
-      animation: smkPop .25s ease forwards;
-      border: 1px solid rgba(255,255,255,.06);
+    .op-modal {
+      background: #2c2f33;
+      color: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      width: 350px;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      animation: popIn 0.5s ease;
     }
-    @keyframes smkPop { to { transform: translateY(0) scale(1);} }
+    @keyframes popIn { from {transform: scale(0.8); opacity:0;} to {transform: scale(1); opacity:1;} }
 
-    .smk-modal h2 { margin: 0 0 8px; font-size: 20px; }
-    .smk-sub { color: var(--smk-muted); font-size: 13px; margin-bottom: 14px; }
-
-    .smk-btn {
-      background: var(--smk-accent); color:#fff; border: none;
-      padding: 10px 14px; border-radius: 10px; font-weight: 700; cursor: pointer;
-      box-shadow: 0 6px 20px rgba(88,101,242,.35);
-      transition: transform .08s ease, filter .15s ease;
+    .op-modal h2 {
+      margin-bottom: 12px;
+      font-size: 20px;
     }
-    .smk-btn:hover { filter: brightness(1.05); }
-    .smk-btn:active { transform: translateY(1px); }
-
-    .smk-msg { margin-top: 12px; font-weight: 700; color: var(--smk-danger); display:none; }
-
-    .smk-launcher {
-      position: fixed; right: 18px; bottom: 18px;
-      background: var(--smk-bg); color: var(--smk-text);
-      border: 1px solid rgba(255,255,255,.06);
-      border-radius: 9999px; padding: 10px 14px; cursor: grab;
-      box-shadow: var(--smk-shadow); z-index: 2147483647;
-      display:flex; align-items:center; gap:10px; font-weight:700;
+    .op-btn {
+      background: #5865F2;
+      border: none;
+      padding: 10px 18px;
+      color: white;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: all 0.2s ease;
     }
-    .smk-dot { width: 10px; height:10px; border-radius:50%; background: var(--smk-green); box-shadow: 0 0 10px rgba(16,185,129,.6); }
-    .smk-actions { display:flex; gap:8px; }
-    .smk-mini {
-      background: transparent; border: 1px solid rgba(255,255,255,.14); color: var(--smk-text);
-      padding: 6px 10px; border-radius: 8px; cursor: pointer; font-weight: 700;
+    .op-btn:hover {
+      filter: brightness(1.1);
     }
-    .smk-mini:hover { background: rgba(255,255,255,.06); }
+    .op-msg {
+      margin-top: 15px;
+      color: #ff4d4d;
+      font-weight: bold;
+    }
+  `;
+  document.head.appendChild(style);
 
-    .smk-panel {
-      position: fixed; right: 18px; bottom: 74px; width: 380px; max-width: 92vw;
-      background: linear-gradient(180deg, var(--smk-bg), var(--smk-bg-2));
-      color: var(--smk-text); border: 1px solid rgba(255,255,255,.06);
-      border-radius: var(--smk-radius); box-shadow: var(--smk-shadow);
-      padding: 16px; z-index: 2147483646; display:none;
-    }
-    .smk-panel h3 { margin: 0 0 12px; font-size: 16px; }
-    .smk-group { margin-bottom: 12px; }
-    .smk-chipwrap { display:flex; flex-wrap: wrap; gap: 8px; }
-    .smk-chip {
-      font-size: 12px; padding: 6px 10px; border-radius: 9999px;
-      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
-    }
-  `);
-
-  // ---------- Functions ----------
-  function toast(msg) {
-    const t = document.createElement("div");
-    t.className = "smk-toast";
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 4500);
+  // --- Toast Function ---
+  function showToast(msg) {
+    const div = document.createElement("div");
+    div.className = "op-toast";
+    div.textContent = msg;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 5000);
   }
 
-  function authModal() {
-    const overlay = el("div", "smk-overlay");
-    const modal = el("div", "smk-modal");
+  // --- Modal Function ---
+  function showAuthModal() {
+    const overlay = document.createElement("div");
+    overlay.className = "op-modal-overlay";
+
+    const modal = document.createElement("div");
+    modal.className = "op-modal";
     modal.innerHTML = `
-      <h2>${BRAND} – Authentication</h2>
-      <div class="smk-sub">Please connect your Discord account to continue.</div>
-      <button class="smk-btn" type="button" id="smk-connect">Connect Discord</button>
-      <div class="smk-msg" id="smk-msg">❌ You are not a premium member.</div>
+      <h2>Authentication Required</h2>
+      <p>Please connect your Discord account</p>
+      <button class="op-btn">Connect Discord</button>
+      <div class="op-msg" style="display:none;"></div>
     `;
+
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
-    modal.querySelector("#smk-connect").addEventListener("click", () => {
-      modal.querySelector("#smk-msg").style.display = "block";
+    modal.querySelector(".op-btn").addEventListener("click", () => {
+      const msg = modal.querySelector(".op-msg");
+      msg.style.display = "block";
+      msg.textContent = "❌ You are not a premium member.";
     });
 
-    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
   }
 
-  function buildSupportedPanel() {
-    const panel = el("div", "smk-panel"); panel.id = "smk-panel";
-    const h = el("h3", "", "Supported Links"); panel.appendChild(h);
-    for (const [group, items] of Object.entries(SUPPORTED)) {
-      const wrap = el("div", "smk-group");
-      const title = el("div", "", group); title.style.fontWeight = "700"; title.style.marginBottom="6px";
-      const chips = el("div", "smk-chipwrap");
-      items.forEach(n => chips.appendChild(el("div", "smk-chip", n)));
-      wrap.appendChild(title); wrap.appendChild(chips); panel.appendChild(wrap);
-    }
-    document.body.appendChild(panel);
-    return panel;
-  }
-
-  function buildLauncher() {
-    const l = el("div", "smk-launcher");
-    l.innerHTML = `
-      <div class="smk-dot"></div>
-      <div>${BRAND}</div>
-      <div class="smk-actions">
-        <button class="smk-mini" id="smk-auth">Auth</button>
-        <button class="smk-mini" id="smk-links">Links</button>
-      </div>
-    `;
-    document.body.appendChild(l);
-
-    // Dragging
-    let down=false,sx,sy,ox,oy;
-    const onDown=e=>{down=true;l.style.cursor="grabbing";sx=(e.touches?e.touches[0].clientX:e.clientX);sy=(e.touches?e.touches[0].clientY:e.clientY);const r=l.getBoundingClientRect();ox=r.left;oy=r.top;e.preventDefault();};
-    const onMove=e=>{if(!down)return;const cx=(e.touches?e.touches[0].clientX:e.clientX),cy=(e.touches?e.touches[0].clientY:e.clientY);const nx=ox+(cx-sx),ny=oy+(cy-sy);l.style.right="auto";l.style.bottom="auto";l.style.left=Math.max(6,Math.min(window.innerWidth-l.offsetWidth-6,nx))+"px";l.style.top=Math.max(6,Math.min(window.innerHeight-l.offsetHeight-6,ny))+"px";};
-    const onUp=()=>{down=false;l.style.cursor="grab";};
-    l.addEventListener("mousedown",onDown);l.addEventListener("touchstart",onDown,{passive:false});
-    window.addEventListener("mousemove",onMove,{passive:false});window.addEventListener("touchmove",onMove,{passive:false});
-    window.addEventListener("mouseup",onUp);window.addEventListener("touchend",onUp);
-
-    // Buttons
-    l.querySelector("#smk-auth").addEventListener("click", e=>{e.stopPropagation();authModal();});
-    const panel=buildSupportedPanel();
-    l.querySelector("#smk-links").addEventListener("click", e=>{e.stopPropagation();panel.style.display=panel.style.display==="block"?"none":"block";});
-  }
-
-  function el(tag, cls, txt) {
-    const d=document.createElement(tag);
-    if(cls)d.className=cls;
-    if(txt)d.textContent=txt;
-    return d;
-  }
-
-  // ---------- Boot ----------
+  // --- Run ---
   window.addEventListener("load", () => {
-    toast(LOADED_TEXT);
-    setTimeout(authModal, 1200);
-    buildLauncher();
-  }, { once: true });
+    showToast("🔥 Smoker UserScript fully loaded!");
+    setTimeout(showAuthModal, 1500);
+  });
 
 })();
