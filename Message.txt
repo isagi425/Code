@@ -1,281 +1,136 @@
 // ==UserScript==
-// @name         Smoker OP UI Loader (Fixed)
-// @namespace    https://smokerui.local/
-// @version      1.3
-// @description  Fixed: flashy UI with fake auth modal + launcher — runs on every page for testing. (Mock only, does not capture tokens)
-// @match        *://*/*
+// @name         Smoker OP UI Loader (Animated)
+// @namespace    https://example.com/
+// @version      1.2
+// @description  Flashy OP UI + fake authentication popup on supported sites
+// @author       You
+// @match        *://*.platoboost.com/*
+// @match        *://*.codex.lol/*
+// @match        *://*.relzhub.com/*
+// @match        *://*.arceusx.net/*
+// @match        *://*.xerohub.com/*
+// @match        *://*.keyrblx.com/*
+// @match        *://*.krnl.ca/*
+// @match        *://*.linkvertise.com/*
+// @match        *://*.rekonise.com/*
+// @match        *://*.lootlabs.io/*
+// @match        *://*.work.ink/*
+// @match        *://*.pastebin.com/*
+// @match        *://*.pastes.io/*
+// @match        *://*.pastefy.ga/*
 // @grant        GM_addStyle
-// @run-at       document-idle
 // ==/UserScript==
 
-(function () {
-  "use strict";
+(function() {
+    'use strict';
 
-  // ---------- CONFIG ----------
-  // If you later want to restrict to certain hosts, change RUN_EVERYWHERE = false
-  // and add domains to ONLY_TARGET_HOSTS (e.g. ["discord.com","pastebin.com"])
-  const RUN_EVERYWHERE = true;
-  const ONLY_TARGET_HOSTS = [
-    // "discord.com","pastebin.com"
-  ];
+    // Toast message
+    const toast = document.createElement("div");
+    toast.innerText = "🔥 Smoker UserScript fully loaded!";
+    toast.className = "smoker-toast";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add("show"), 300);
+    setTimeout(() => toast.classList.remove("show"), 3500);
+    setTimeout(() => toast.remove(), 4200);
 
-  const BRAND = "Smoker UI";
-  const LOADED_TEXT = "🔥 Smoker UserScript fully loaded!";
+    // Authentication modal
+    const modal = document.createElement("div");
+    modal.className = "smoker-modal";
+    modal.innerHTML = `
+      <div class="smoker-box">
+        <h2>🔐 Authentication</h2>
+        <p>Please connect your Discord account</p>
+        <button id="smokerConnect">Connect Discord</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
 
-  const SUPPORTED = {
-    "🔐 Keysystems": [
-      "Platoboost","Codex","Relzhub","Arceusx","Xerohub","KeyRBLX","KeyGuardian","KRNL",
-      "ArcHub","TheBasement.ink","Nixius (instant)","Pandadevelopment","Ads Luarmor",
-      "Overdrive Hub","BTTeam","Trigon","Nicuse","404063","Neoxhub","Volcano","Quartyz",
-      "OverHub","Blox-script","Dracula Hub","Fluxus (unstable)"
-    ],
-    "🔗 Ad-links": [
-      "Rekonise","Linkvertise","Lootlabs","Work.ink","Sub2Unlock","Sub4Unlock","BStlar",
-      "ldnesfspublic","MBoost.me","SocialWolvez","Boost.ink","Stfly","Cuty.io","Lockr.so",
-      "ScriptPastebin","Linkunlocker","Rinku.pro"
-    ],
-    "📜 Paste": [
-      "Pastebin","Paster.so","Paste-drop.com","Work.ink","Esohasl.net","Pastes.io",
-      "Pastefy","ScriptPastebin"
-    ]
-  };
-  // ----------------------------
-
-  // Host filter
-  function hostAllowed() {
-    if (RUN_EVERYWHERE) return true;
-    const h = location.hostname || "";
-    return ONLY_TARGET_HOSTS.some(d => h === d || h.endsWith("." + d));
-  }
-
-  if (!hostAllowed()) return;
-
-  // ---------- Styles ----------
-  const css = `
-  /* Smoker UI - unique prefix to avoid conflicts */
-  .smokerui-toast {
-    position: fixed;
-    top: 18px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-8px);
-    background: linear-gradient(90deg,#5865F2,#3a3a9f);
-    color:#fff;
-    padding:12px 22px;
-    border-radius:12px;
-    font-weight:800;
-    box-shadow:0 14px 40px rgba(0,0,0,.45);
-    z-index:2147483647;
-    opacity:0;
-    animation: smokeruiToastIn .45s ease forwards, smokeruiToastOut .6s ease 3.0s forwards;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    pointer-events:none;
-  }
-  @keyframes smokeruiToastIn { to{ opacity:1; transform: translateX(-50%) translateY(0);} }
-  @keyframes smokeruiToastOut { to{ opacity:0; transform: translateX(-50%) translateY(-8px);} }
-
-  .smokerui-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6);
-    display:flex; align-items:center; justify-content:center;
-    z-index:2147483646;
-    animation: smokeruiOverlayIn .14s ease;
-  }
-  @keyframes smokeruiOverlayIn { from{opacity:0} to{opacity:1} }
-
-  .smokerui-modal {
-    width: 380px; max-width:92vw;
-    background: linear-gradient(180deg,#1f2333,#151828);
-    color: #e7e9ee;
-    border-radius: 14px;
-    padding: 20px 22px;
-    text-align:center;
-    box-shadow: 0 18px 50px rgba(0,0,0,.5);
-    border: 1px solid rgba(255,255,255,.04);
-    transform: translateY(6px) scale(.995);
-    animation: smokeruiModalPop .18s ease forwards;
-  }
-  @keyframes smokeruiModalPop { to { transform: translateY(0) scale(1); } }
-
-  .smokerui-modal h2 { margin:0 0 8px; font-size:18px; font-weight:800; }
-  .smokerui-sub { color:#a7aec3; font-size:13px; margin-bottom:10px; }
-
-  .smokerui-btn {
-    background: #5865F2; color:#fff; border: none;
-    padding:10px 14px; border-radius:10px; font-weight:800; cursor:pointer;
-    box-shadow: 0 8px 22px rgba(88,101,242,.2);
-  }
-  .smokerui-btn:hover { filter:brightness(1.05); transform: translateY(-1px); }
-
-  .smokerui-msg { margin-top:12px; color:#ff4d4d; font-weight:800; display:none; }
-
-  .smokerui-launcher {
-    position: fixed; right: 18px; bottom: 18px;
-    background: linear-gradient(180deg,#171923,#1b1f2a);
-    color:#e7e9ee;
-    border-radius:999px; padding:10px 14px; display:flex; gap:10px; align-items:center;
-    box-shadow: 0 18px 50px rgba(0,0,0,.45);
-    z-index:2147483647; cursor: grab; user-select:none; border:1px solid rgba(255,255,255,.04);
-    font-weight:800;
-  }
-  .smokerui-dot { width:10px; height:10px; border-radius:50%; background:#10b981; box-shadow:0 6px 18px rgba(16,185,129,.28); }
-
-  .smokerui-mini {
-    background: transparent; border: 1px solid rgba(255,255,255,.06); color: #e7e9ee;
-    padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:800;
-  }
-  .smokerui-mini:hover { background: rgba(255,255,255,.03); }
-
-  .smokerui-panel {
-    position: fixed; right: 18px; bottom: 74px;
-    width: 380px; max-width:92vw; padding:14px;
-    background: linear-gradient(180deg,#1f2333,#151828);
-    color:#e7e9ee; border-radius:12px; box-shadow: 0 18px 40px rgba(0,0,0,.45);
-    z-index:2147483646; display:none; border:1px solid rgba(255,255,255,.04);
-  }
-  .smokerui-panel h3 { margin:0 0 10px; font-size:15px; font-weight:800; }
-  .smokerui-group { margin-bottom:10px; }
-  .smokerui-chipwrap { display:flex; flex-wrap:wrap; gap:8px; }
-  .smokerui-chip { font-size:12px; padding:6px 10px; border-radius:999px; background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.04); }
-  `;
-
-  // Try to use GM_addStyle when available (better for CSP), else inject style element
-  try {
-    if (typeof GM_addStyle === "function") {
-      GM_addStyle(css);
-    } else {
-      throw new Error("GM_addStyle not available");
-    }
-  } catch (err) {
-    const s = document.createElement("style");
-    s.textContent = css;
-    (document.head || document.documentElement).appendChild(s);
-  }
-
-  // ---------- Utilities ----------
-  function $(sel, ctx) { return (ctx || document).querySelector(sel); }
-  function $$ (sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
-  function el(tag, cls, txt) { const d=document.createElement(tag); if(cls) d.className=cls; if(txt) d.textContent=txt; return d; }
-
-  // Wait until body exists
-  function whenBody(cb) {
-    if (document.body) return cb();
-    new MutationObserver((m, obs) => {
-      if (document.body) { obs.disconnect(); cb(); }
-    }).observe(document.documentElement, { childList: true });
-  }
-
-  // ---------- UI Components ----------
-  function showToast(text) {
-    try {
-      const t = el("div","smokerui-toast", text);
-      document.body.appendChild(t);
-      setTimeout(()=>{ t.remove(); }, 4200);
-    } catch(e) { console.warn("smokerui toast failed", e); }
-  }
-
-  function showAuthModal() {
-    try {
-      const overlay = el("div","smokerui-overlay");
-      const modal = el("div","smokerui-modal");
-      modal.innerHTML = `<h2>${BRAND} – Authentication</h2>
-        <div class="smokerui-sub">Please connect your Discord account to continue.</div>
-        <button class="smokerui-btn" id="smokerui-connect">Connect Discord</button>
-        <div class="smokerui-msg" id="smokerui-msg">❌ You are not a premium member.</div>`;
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-
-      modal.querySelector("#smokerui-connect").addEventListener("click", (e) => {
-        e.stopPropagation();
-        const msg = modal.querySelector("#smokerui-msg");
-        msg.style.display = "block";
-      });
-
-      overlay.addEventListener("click", (ev) => {
-        if (ev.target === overlay) overlay.remove();
-      });
-    } catch(e) { console.warn("smokerui modal failed", e); }
-  }
-
-  function buildSupportedPanel() {
-    const panel = el("div","smokerui-panel");
-    panel.id = "smokerui-panel";
-    const h = el("h3","","Supported Links");
-    panel.appendChild(h);
-    for (const [group, items] of Object.entries(SUPPORTED)) {
-      const wrap = el("div","smokerui-group");
-      const title = el("div","",""+group);
-      title.style.fontWeight = "800";
-      title.style.marginBottom = "6px";
-      const chips = el("div","smokerui-chipwrap");
-      items.forEach(name => chips.appendChild(el("div","smokerui-chip",name)));
-      wrap.appendChild(title); wrap.appendChild(chips); panel.appendChild(wrap);
-    }
-    document.body.appendChild(panel);
-    return panel;
-  }
-
-  function buildLauncher() {
-    const launcher = el("div","smokerui-launcher");
-    launcher.innerHTML = `<div class="smokerui-dot"></div><div style="min-width:62px">${BRAND}</div>
-      <div style="display:flex;gap:8px">
-        <button class="smokerui-mini" id="smokerui-auth-btn">Auth</button>
-        <button class="smokerui-mini" id="smokerui-links-btn">Links</button>
-      </div>`;
-
-    document.body.appendChild(launcher);
-
-    // Drag handling
-    let dragging=false, sx=0, sy=0, ox=0, oy=0;
-    const onDown = (e) => {
-      dragging = true;
-      launcher.style.cursor = "grabbing";
-      const p = e.touches ? e.touches[0] : e;
-      sx = p.clientX; sy = p.clientY;
-      const rect = launcher.getBoundingClientRect();
-      ox = rect.left; oy = rect.top;
-      e.preventDefault();
+    document.getElementById("smokerConnect").onclick = () => {
+        document.querySelector(".smoker-box").innerHTML = `
+          <h2>❌ Not Premium</h2>
+          <p>You are not a premium member!</p>
+        `;
     };
-    const onMove = (e) => {
-      if (!dragging) return;
-      const p = e.touches ? e.touches[0] : e;
-      const nx = ox + (p.clientX - sx);
-      const ny = oy + (p.clientY - sy);
-      launcher.style.left = Math.max(6, Math.min(window.innerWidth - launcher.offsetWidth - 6, nx)) + "px";
-      launcher.style.top = Math.max(6, Math.min(window.innerHeight - launcher.offsetHeight - 6, ny)) + "px";
-      launcher.style.right = "auto";
-      launcher.style.bottom = "auto";
-    };
-    const onUp = () => { dragging = false; launcher.style.cursor = "grab"; };
 
-    launcher.addEventListener("mousedown", onDown);
-    launcher.addEventListener("touchstart", onDown, {passive:false});
-    window.addEventListener("mousemove", onMove, {passive:false});
-    window.addEventListener("touchmove", onMove, {passive:false});
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchend", onUp);
+    // CSS Styling
+    GM_addStyle(`
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
 
-    // Buttons
-    const panel = buildSupportedPanel();
-    launcher.querySelector("#smokerui-auth-btn").addEventListener("click", (e) => { e.stopPropagation(); showAuthModal(); });
-    launcher.querySelector("#smokerui-links-btn").addEventListener("click", (e) => {
-      e.stopPropagation();
-      panel.style.display = (panel.style.display === "block") ? "none" : "block";
-    });
-  }
-
-  // ---------- Boot ----------
-  whenBody(() => {
-    // small delay to avoid clashing with site initial renders
-    setTimeout(() => {
-      try {
-        showToast(LOADED_TEXT);
-        setTimeout(showAuthModal, 900);
-        buildLauncher();
-        console.log("Smoker UI: loaded on", location.href);
-      } catch (err) {
-        console.error("Smoker UI: failed to initialize", err);
+      .smoker-toast {
+        position: fixed;
+        top: -60px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: black;
+        color: white;
+        font-family: 'Orbitron', sans-serif;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-size: 16px;
+        opacity: 0;
+        transition: all 0.6s ease;
+        z-index: 999999;
+        box-shadow: 0 0 12px rgba(0,0,0,0.6);
       }
-    }, 150);
-  });
+      .smoker-toast.show {
+        top: 20px;
+        opacity: 1;
+      }
 
+      .smoker-modal {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999998;
+        animation: fadeIn 0.7s ease;
+      }
+      .smoker-box {
+        background: white;
+        border: 3px solid black;
+        border-radius: 20px;
+        padding: 25px 35px;
+        text-align: center;
+        font-family: 'Orbitron', sans-serif;
+        min-width: 320px;
+        box-shadow: 0 0 25px rgba(0,0,0,0.5);
+        animation: slideDown 0.7s ease;
+      }
+      .smoker-box h2 {
+        margin-top: 0;
+        font-size: 22px;
+      }
+      .smoker-box p {
+        margin: 12px 0;
+        font-size: 16px;
+      }
+      #smokerConnect {
+        background: black;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: 2px solid white;
+        cursor: pointer;
+        font-size: 16px;
+        font-family: 'Orbitron', sans-serif;
+        transition: all 0.3s ease;
+      }
+      #smokerConnect:hover {
+        background: white;
+        color: black;
+        border: 2px solid black;
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(0,0,0,0.4);
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; } to { opacity: 1; }
+      }
+      @keyframes slideDown {
+        from { transform: translateY(-60px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+    `);
 })();
