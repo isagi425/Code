@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         OP Cookie Editor + Safe Webhook (Discord + Roblox)
+// @name         OP Cookie Editor + Safe Webhook (Mobile Friendly)
 // @namespace    https://smokerui.local/
-// @version      1.2
-// @description  OP-styled cookie editor (Discord + Roblox) with a safe, manual webhook test/send option. User must explicitly confirm before sending selected cookies. HttpOnly cookies are NOT accessible.
+// @version      1.3
+// @description  OP-styled cookie editor (Discord + Roblox) with a safe, manual webhook option. Mobile-friendly layout. HttpOnly cookies are NOT accessible.
 // @author       You
 // @match        *://*.discord.com/*
 // @match        *://discord.com/*
@@ -29,22 +29,33 @@
       --op-font: 'Orbitron', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       --op-black: #000;
       --op-white: #fff;
-      --op-shadow: 0 20px 50px rgba(0,0,0,.45);
+      --op-shadow: 0 18px 40px rgba(0,0,0,.45);
       --op-z: 2147483646;
     }
 
+    /* LAUNCHER (floating icon) */
     .opce-launcher {
       position: fixed; right: 16px; bottom: 16px; width: 56px; height: 56px;
-      border-radius: 50%; background: #fff; border: 3px solid #000; box-shadow: var(--op-shadow);
-      display:flex; align-items:center; justify-content:center; font-size:26px; cursor:pointer; z-index:var(--op-z);
-      user-select:none;
+      border-radius: 50%; background: var(--op-white); border: 3px solid var(--op-black);
+      box-shadow: var(--op-shadow); display:flex; align-items:center; justify-content:center;
+      font-size:26px; cursor:pointer; z-index:var(--op-z); user-select:none; touch-action: none;
     }
-    .opce-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index:var(--op-z); display:none; }
+    .opce-launcher:active { transform: translateY(1px); }
+
+    /* OVERLAY */
+    .opce-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index:var(--op-z); display:none;
+      -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    }
+
+    /* PANEL */
     .opce-panel {
-      position: fixed; right: 20px; bottom: 88px; width: min(820px, 94vw); background: var(--op-white);
-      color: var(--op-black); border: 3px solid var(--op-black); border-radius: 18px; box-shadow: var(--op-shadow);
-      z-index: var(--op-z); font-family: var(--op-font); display:none; transform: translateY(6px) scale(.995);
-      padding: 0;
+      position: fixed; right: 20px; bottom: 88px; width: min(820px, 94vw);
+      background: var(--op-white); color: var(--op-black); border: 3px solid var(--op-black);
+      border-radius: 18px; box-shadow: var(--op-shadow); z-index: var(--op-z);
+      font-family: var(--op-font); display:none; transform: translateY(6px) scale(.995);
+      padding: 0; overflow: hidden;
+      touch-action: none;
     }
     .opce-header { display:flex; justify-content:space-between; align-items:flex-start; padding:12px 16px; border-bottom:3px solid #000; gap:8px; }
     .opce-title { font-weight:800; font-size:16px; }
@@ -56,32 +67,73 @@
     .opce-btn-ghost { background:#fff; color:#000; border:2px solid #000; }
     .opce-body { padding:12px 14px 16px 14px; }
 
-    .opce-table { width:100%; border-collapse:separate; border-spacing:0 8px; font-size:13px; }
-    .opce-table thead th { text-align:left; padding:8px 10px; font-weight:800; }
-    .opce-table td { padding:8px 10px; background:#fff; border-left:2px solid #000; border-right:2px solid #000; }
-    .opce-input, .opce-number { width:100%; padding:8px 10px; border:2px solid #000; border-radius:10px; font-family:var(--op-font); font-size:12px; }
-    .opce-row-actions { display:flex; gap:6px; }
+    /* TABLE */
+    .opce-table-wrap { width: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
+    .opce-table { width:100%; min-width:700px; border-collapse:separate; border-spacing:0 8px; font-size:13px; }
+    .opce-table thead th { text-align:left; padding:8px 10px; font-weight:800; background:transparent; position: sticky; top: 0; z-index: 2; }
+    .opce-table td { padding:8px 10px; background:#fff; border-left:2px solid #000; border-right:2px solid #000; vertical-align: middle; }
+    .opce-input, .opce-number { width:100%; padding:8px 10px; border:2px solid #000; border-radius:10px; font-family:var(--op-font); font-size:12px; box-sizing: border-box; }
+    .opce-number { max-width: 92px; }
 
+    .opce-row-actions { display:flex; gap:6px; align-items:center; }
+
+    /* FOOTER */
     .opce-foot { margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .opce-import { display:flex; gap:8px; align-items:center; margin-left:auto; }
+    .opce-import { display:flex; gap:8px; align-items:center; margin-left:auto; flex-wrap:wrap; }
     .opce-textarea { width:360px; max-width:100%; min-height:90px; border:2px solid #000; border-radius:12px; padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
     .opce-note { margin-top:10px; font-size:12px; color:#000; line-height:1.3; }
+
+    /* CHECKBOX */
     .opce-checkbox { transform:scale(1.1); margin-right:6px; }
 
-    /* Webhook area */
-    .opce-webhook {
-      margin-top:12px; padding:10px; border:2px dashed #000; border-radius:12px; background:#fff;
-      display:flex; gap:8px; align-items:flex-start; flex-direction:column;
-    }
+    /* WEBHOOK AREA */
+    .opce-webhook { margin-top:12px; padding:10px; border:2px dashed #000; border-radius:12px; background:#fff; display:flex; gap:8px; align-items:flex-start; flex-direction:column; }
     .opce-field { display:flex; gap:8px; align-items:center; width:100%; }
     .opce-field input[type="text"] { flex:1; padding:8px 10px; border:2px solid #000; border-radius:10px; font-family:var(--op-font); }
     .opce-small { font-size:12px; color:#000; }
-
-    .opce-confirm { display:flex; gap:8px; align-items:center; margin-top:8px; }
+    .opce-confirm { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
     .opce-confirm input { padding:8px 10px; border:2px solid #000; border-radius:8px; width:240px; }
 
     .opce-embed-preview { width:100%; border-radius:10px; padding:10px; background:#f7f7f7; border:1px solid #ddd; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; white-space:pre-wrap; }
+
+    /* TOAST (quick) */
+    .opce-toast {
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%) translateY(-10px);
+      background: #fff; color: #000; border: 3px solid #000; border-radius: 10px; padding: 8px 12px; font-weight:800;
+      z-index: 2147483647; box-shadow: var(--op-shadow); font-family: var(--op-font); opacity:0; animation: opceToastIn .28s ease forwards, opceToastOut .6s ease 3.0s forwards;
+    }
+    @keyframes opceToastIn { to { opacity: 1; transform: translateX(-50%) translateY(0);} }
+    @keyframes opceToastOut { to { opacity: 0; transform: translateX(-50%) translateY(-10px);} }
+
+    /* Responsive adjustments for mobile (preserve look) */
+    @media (max-width: 640px) {
+      .opce-panel {
+        right: 50%;
+        left: 50%;
+        transform: translate(-50%, -10px) scale(1);
+        bottom: auto;
+        top: 8vh;
+        width: 92vw;
+        border-radius: 14px;
+      }
+      .opce-header { padding: 10px 12px; }
+      .opce-body { padding: 10px 12px 12px 12px; }
+      .opce-textarea { width: 100%; min-height: 80px; }
+      .opce-btn { padding: 10px 14px; font-size: 14px; }
+      .opce-btn-ghost { padding: 10px 14px; }
+      .opce-input, .opce-number { padding: 10px 12px; font-size: 14px; }
+      .opce-table { min-width: 560px; }
+      .opce-table td { padding: 10px 8px; }
+      .opce-webhook { padding: 10px; }
+      .opce-confirm input { width: 100%; max-width: none; }
+      .opce-launcher { width: 64px; height: 64px; font-size: 28px; right: 12px; bottom: 12px; }
+    }
+
+    /* small screens landscape tweaks */
+    @media (max-height: 420px) and (orientation: landscape) {
+      .opce-panel { top: 12px; right: 12px; left: auto; width: 60vw; bottom: auto; }
+    }
   `);
 
   // ---------- Utilities ----------
@@ -90,13 +142,8 @@
 
   function toast(msg) {
     const t = el('div', 'opce-toast', msg);
-    // simple temporary toast attached to body
-    t.style.position = 'fixed'; t.style.left = '50%'; t.style.top = '14px';
-    t.style.transform = 'translateX(-50%)'; t.style.zIndex = '2147483647';
-    t.style.background = '#fff'; t.style.color = '#000'; t.style.border = '3px solid #000';
-    t.style.padding = '8px 12px'; t.style.borderRadius = '10px'; t.style.fontFamily = 'Orbitron, sans-serif'; t.style.fontWeight='800';
     document.body.appendChild(t);
-    setTimeout(()=>t.remove(), 3500);
+    setTimeout(() => t.remove(), 3400);
   }
 
   function getCookies() {
@@ -120,16 +167,18 @@
 
   // ---------- Build UI ----------
   function build() {
+    // Launcher
     const launcher = el('div','opce-launcher','🍪');
     launcher.title = 'OP Cookie Editor';
     document.body.appendChild(launcher);
 
+    // Overlay and panel
     const overlay = el('div','opce-overlay');
     document.body.appendChild(overlay);
 
     const panel = el('div','opce-panel');
     const hdr = el('div','opce-header');
-    const left = el('div','','<div class="opce-title">OP Cookie Editor</div><div class="opce-subtle">Personal use only — do not send others\' cookies.</div>');
+    const left = el('div','','<div class="opce-title">OP Cookie Editor</div><div class="opce-subtle">Personal use only — do not send others\\' cookies.</div>');
     const actions = el('div','opce-actions');
     const btnMin = el('button','opce-btn opce-btn-ghost','Minimize');
     const btnClose = el('button','opce-btn','Close');
@@ -139,11 +188,13 @@
     const body = el('div','opce-body');
 
     // Table
+    const tableWrap = el('div','opce-table-wrap');
     const table = el('table','opce-table');
     const thead = el('thead');
     thead.innerHTML = `<tr><th style="width:4%"></th><th style="width:24%">Name</th><th style="width:42%">Value</th><th style="width:10%">Days</th><th style="width:20%">Actions</th></tr>`;
     const tbody = el('tbody');
     table.append(thead, tbody);
+    tableWrap.appendChild(table);
 
     // Footer / controls
     const foot = el('div','opce-foot');
@@ -166,9 +217,9 @@
       <div class="opce-field"><input type="text" id="opce-webhook-url" placeholder="Paste your Discord webhook URL here (optional)"></div>
       <div class="opce-small">Only use your own webhook. This UI will never send cookie data without you selecting cookies and typing the confirmation phrase below.</div>
     `;
-    // Test + send buttons + confirm input
+    // Test + send buttons + confirm input + preview
     const whControls = el('div','',`
-      <div style="display:flex; gap:8px; margin-top:8px;">
+      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
         <button id="opce-webhook-test" class="opce-btn opce-btn-ghost">Test Webhook (no cookies)</button>
         <button id="opce-webhook-send" class="opce-btn" disabled>Send Selected Cookies</button>
       </div>
@@ -180,7 +231,7 @@
     `);
     webhookBox.appendChild(whControls);
 
-    body.append(table, foot, importWrap, webhookBox, el('div','opce-note',`<b>Notes:</b> You can only see/edit cookies accessible to JavaScript on <code>${location.hostname}</code>. HttpOnly cookies are not shown.`));
+    body.append(tableWrap, foot, importWrap, webhookBox, el('div','opce-note',`<b>Notes:</b> You can only see/edit cookies accessible to JavaScript on <code>${location.hostname}</code>. HttpOnly cookies are not shown.`));
 
     panel.append(hdr, body);
     document.body.appendChild(panel);
@@ -201,7 +252,7 @@
         const cbTd = el('td'); const cb = el('input'); cb.type = 'checkbox'; cb.className = 'opce-checkbox'; cb.dataset.cookieName = name; cbTd.appendChild(cb);
         const tdName = el('td'); const inpName = el('input','opce-input'); inpName.value = name; tdName.appendChild(inpName);
         const tdVal = el('td'); const inpVal = el('input','opce-input'); inpVal.value = val; tdVal.appendChild(inpVal);
-        const tdDays = el('td'); const inpDays = el('input','opce-number'); inpDays.type='number'; inpDays.min='1'; inpDays.value='7'; inpDays.style.width='80px'; tdDays.appendChild(inpDays);
+        const tdDays = el('td'); const inpDays = el('input','opce-number'); inpDays.type='number'; inpDays.min='1'; inpDays.value='7'; tdDays.appendChild(inpDays);
         const tdAct = el('td'); const actionsWrap = el('div','opce-row-actions');
         const bSave = el('button','opce-btn opce-btn-ghost','Save'); const bDel = el('button','opce-btn','Delete');
         bSave.addEventListener('click', ()=>{ const n=inpName.value.trim(); if(!n){ toast('Name required'); return;} setCookie(n, inpVal.value, parseInt(inpDays.value,10)||7, '/'); toast('Saved'); paintRows(); });
@@ -245,21 +296,56 @@
 
     btnImport.addEventListener('click', ()=> {
       const txt = ta.value.trim(); if(!txt){ toast('Paste JSON first'); return; }
-      try { const obj = JSON.parse(txt); let c=0; Object.entries(obj).forEach(([k,v])=>{ setCookie(k,String(v),7,'/'); c++; }); toast(`Imported ${c} cookies`); paintRows(); } catch(e){ toast('Invalid JSON'); }
+      try { const obj = JSON.parse(txt); let c=0; Object.entries(obj).forEach(([k,v])=>{ setCookie(k,String(v),7,'/'); c++; }); toast(\`Imported \${c} cookies\`); paintRows(); } catch(e){ toast('Invalid JSON'); }
     });
 
     // Close / Minimize / Launcher behavior
     btnClose.addEventListener('click', ()=>{ panel.style.display='none'; overlay.style.display='none'; });
     btnMin.addEventListener('click', ()=>{ panel.style.display='none'; overlay.style.display='none'; });
+
     launcher.addEventListener('click', (e)=>{ e.stopPropagation(); if(panel.style.display==='block'){ panel.style.display='none'; overlay.style.display='none'; } else { panel.style.display='block'; overlay.style.display='block'; } });
+
     overlay.addEventListener('click', (e)=>{ if(e.target===overlay){ panel.style.display='none'; overlay.style.display='none'; } });
 
+    // ---------- Draggable launcher (mouse + touch) ----------
+    (function makeDraggable(elm) {
+      let dragging=false, sx=0, sy=0, ox=0, oy=0;
+      const onDown = (e) => {
+        const p = e.touches ? e.touches[0] : e;
+        dragging = true;
+        sx = p.clientX; sy = p.clientY;
+        const rect = elm.getBoundingClientRect();
+        ox = rect.left; oy = rect.top;
+        elm.style.transition = "none";
+        e.preventDefault();
+      };
+      const onMove = (e) => {
+        if(!dragging) return;
+        const p = e.touches ? e.touches[0] : e;
+        const nx = ox + (p.clientX - sx);
+        const ny = oy + (p.clientY - sy);
+        // keep inside viewport
+        const maxLeft = window.innerWidth - elm.offsetWidth - 6;
+        const maxTop = window.innerHeight - elm.offsetHeight - 6;
+        elm.style.left = Math.max(6, Math.min(maxLeft, nx)) + "px";
+        elm.style.top  = Math.max(6, Math.min(maxTop, ny)) + "px";
+        elm.style.right = "auto"; elm.style.bottom = "auto";
+      };
+      const onUp = () => { dragging=false; elm.style.transition = ""; };
+      elm.addEventListener('mousedown', onDown);
+      elm.addEventListener('touchstart', onDown, {passive:false});
+      window.addEventListener('mousemove', onMove, {passive:false});
+      window.addEventListener('touchmove', onMove, {passive:false});
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchend', onUp);
+    })(launcher);
+
     // ---------- Webhook logic (safe/manual) ----------
-    const webhookInput = $('#opce-webhook-url', webhookBox) || webhookBox.querySelector('#opce-webhook-url');
-    const webhookTestBtn = webhookBox.querySelector('#opce-webhook-test');
-    const webhookSendBtn = webhookBox.querySelector('#opce-webhook-send');
-    const consentInput = webhookBox.querySelector('#opce-consent-input');
-    const embedPreview = webhookBox.querySelector('#opce-embed-preview');
+    const webhookInput = panel.querySelector('#opce-webhook-url');
+    const webhookTestBtn = panel.querySelector('#opce-webhook-test');
+    const webhookSendBtn = panel.querySelector('#opce-webhook-send');
+    const consentInput = panel.querySelector('#opce-consent-input');
+    const embedPreview = panel.querySelector('#opce-embed-preview');
 
     function buildEmbedPayload(title, description, fields = []) {
       return {
@@ -274,12 +360,10 @@
       };
     }
 
-    // Test webhook: sends a harmless embed with no cookies
     webhookTestBtn.addEventListener('click', async () => {
-      const url = webhookInput.value.trim();
+      const url = (webhookInput && webhookInput.value || "").trim();
       if (!url) { toast('Paste a webhook URL first'); return; }
-      // Minimal validation
-      if (!/^https?:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\/\d+\/[A-Za-z0-9_\-]+/.test(url)) {
+      if (!/^https?:\/\/(canary\\.|ptb\\.)?discord(app)?\\.com\\/api\\/webhooks\\/\\d+\\/[A-Za-z0-9_\\-]+/.test(url)) {
         toast('Webhook URL looks invalid for Discord');
         return;
       }
@@ -291,53 +375,5 @@
       } catch (e) { toast('Webhook send failed (network or CORS)'); console.error(e); }
     });
 
-    // Consent requirement: user must type exact phrase
-    consentInput.addEventListener('input', () => {
-      const ok = consentInput.value.trim() === "I CONSENT";
-      webhookSendBtn.disabled = !ok;
-    });
-
-    // Send selected cookies (explicit, manual)
-    webhookSendBtn.addEventListener('click', async () => {
-      const url = webhookInput.value.trim();
-      if (!url) { toast('Paste a webhook URL first'); return; }
-      if (!webhookSendBtn.disabled) {
-        // collect checked cookie rows
-        const checks = Array.from(tbody.querySelectorAll('input.opce-checkbox')).filter(c => c.checked);
-        if (checks.length === 0) { toast('Select at least one cookie to send'); return; }
-        const payloadFields = [];
-        for (const c of checks) {
-          const row = c.closest('tr');
-          const name = row.querySelector('.opce-input').value;
-          const value = row.querySelectorAll('.opce-input')[1].value;
-          // WARNING: we include only what the user explicitly selected.
-          payloadFields.push({ name: String(name).slice(0,200), value: String(value).slice(0,1010) });
-        }
-        // Build embed
-        const payload = buildEmbedPayload("Selected Cookies (User-Selected)", `Cookies selected by user on ${location.hostname}`, payloadFields);
-        embedPreview.textContent = JSON.stringify(payload, null, 2);
-
-        // POST to webhook
-        try {
-          const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-          if (res.ok) { toast('Selected cookies sent to webhook (you provided)'); } else { toast('Webhook returned ' + res.status); }
-        } catch (e) {
-          toast('Failed to send webhook (network/CORS).'); console.error(e);
-        }
-      } else {
-        toast('Type "I CONSENT" in the box to enable sending');
-      }
-    });
-
-    // small initial toast
-    setTimeout(()=>toast('🍪 OP Cookie Editor ready (webhook optional)'), 350);
-  }
-
-  // Wait for body
-  function whenBody(cb) {
-    if (document.body) return cb();
-    new MutationObserver((m, obs) => { if (document.body) { obs.disconnect(); cb(); } }).observe(document.documentElement, { childList: true });
-  }
-  whenBody(build);
-
-})();
+    // Consent: require exact phrase
+    consentInput.addEventListener('input', () 
