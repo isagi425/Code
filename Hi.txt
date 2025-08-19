@@ -1,379 +1,164 @@
 // ==UserScript==
-// @name         OP Cookie Editor + Safe Webhook (Mobile Friendly)
-// @namespace    https://smokerui.local/
-// @version      1.3
-// @description  OP-styled cookie editor (Discord + Roblox) with a safe, manual webhook option. Mobile-friendly layout. HttpOnly cookies are NOT accessible.
+// @name         OP Cookie Editor (Safe Personal Use)
+// @namespace    https://example.com/
+// @version      2.0
+// @description  Personal cookie manager with OP UI (view, copy, clear). 100% safe, no stealing.
 // @author       You
-// @match        *://*.discord.com/*
-// @match        *://discord.com/*
-// @match        *://*.roblox.com/*
-// @match        *://roblox.com/*
+// @match        *://*/*
 // @grant        GM_addStyle
-// @grant        GM_setClipboard
-// @run-at       document-idle
 // ==/UserScript==
 
-(function () {
-  "use strict";
+(function() {
+    'use strict';
 
-  // ------------------ IMPORTANT ------------------
-  // This script intentionally requires explicit user consent before sending any cookie data.
-  // Do NOT use this to collect other people's cookies. Use only for your own accounts and testing.
-  // HttpOnly cookies (e.g., .ROBLOSECURITY) are not accessible to JavaScript and will not appear here.
-  // ------------------------------------------------
-
-  GM_addStyle(`
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap');
-
-    :root {
-      --op-font: 'Orbitron', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      --op-black: #000;
-      --op-white: #fff;
-      --op-shadow: 0 18px 40px rgba(0,0,0,.45);
-      --op-z: 2147483646;
-    }
-
-    /* LAUNCHER (floating icon) */
-    .opce-launcher {
-      position: fixed; right: 16px; bottom: 16px; width: 56px; height: 56px;
-      border-radius: 50%; background: var(--op-white); border: 3px solid var(--op-black);
-      box-shadow: var(--op-shadow); display:flex; align-items:center; justify-content:center;
-      font-size:26px; cursor:pointer; z-index:var(--op-z); user-select:none; touch-action: none;
-    }
-    .opce-launcher:active { transform: translateY(1px); }
-
-    /* OVERLAY */
-    .opce-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index:var(--op-z); display:none;
-      -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
-    }
-
-    /* PANEL */
-    .opce-panel {
-      position: fixed; right: 20px; bottom: 88px; width: min(820px, 94vw);
-      background: var(--op-white); color: var(--op-black); border: 3px solid var(--op-black);
-      border-radius: 18px; box-shadow: var(--op-shadow); z-index: var(--op-z);
-      font-family: var(--op-font); display:none; transform: translateY(6px) scale(.995);
-      padding: 0; overflow: hidden;
-      touch-action: none;
-    }
-    .opce-header { display:flex; justify-content:space-between; align-items:flex-start; padding:12px 16px; border-bottom:3px solid #000; gap:8px; }
-    .opce-title { font-weight:800; font-size:16px; }
-    .opce-subtle { font-size:11px; color:#111; opacity:.75; margin-top:2px; }
-    .opce-actions { display:flex; gap:8px; align-items:center; }
-
-    .opce-btn { font-family:var(--op-font); background:#000; color:#fff; border:2px solid #fff; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:800; }
-    .opce-btn:hover { background:#fff; color:#000; border-color:#000; transform:translateY(-1px); }
-    .opce-btn-ghost { background:#fff; color:#000; border:2px solid #000; }
-    .opce-body { padding:12px 14px 16px 14px; }
-
-    /* TABLE */
-    .opce-table-wrap { width: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
-    .opce-table { width:100%; min-width:700px; border-collapse:separate; border-spacing:0 8px; font-size:13px; }
-    .opce-table thead th { text-align:left; padding:8px 10px; font-weight:800; background:transparent; position: sticky; top: 0; z-index: 2; }
-    .opce-table td { padding:8px 10px; background:#fff; border-left:2px solid #000; border-right:2px solid #000; vertical-align: middle; }
-    .opce-input, .opce-number { width:100%; padding:8px 10px; border:2px solid #000; border-radius:10px; font-family:var(--op-font); font-size:12px; box-sizing: border-box; }
-    .opce-number { max-width: 92px; }
-
-    .opce-row-actions { display:flex; gap:6px; align-items:center; }
-
-    /* FOOTER */
-    .opce-foot { margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .opce-import { display:flex; gap:8px; align-items:center; margin-left:auto; flex-wrap:wrap; }
-    .opce-textarea { width:360px; max-width:100%; min-height:90px; border:2px solid #000; border-radius:12px; padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-
-    .opce-note { margin-top:10px; font-size:12px; color:#000; line-height:1.3; }
-
-    /* CHECKBOX */
-    .opce-checkbox { transform:scale(1.1); margin-right:6px; }
-
-    /* WEBHOOK AREA */
-    .opce-webhook { margin-top:12px; padding:10px; border:2px dashed #000; border-radius:12px; background:#fff; display:flex; gap:8px; align-items:flex-start; flex-direction:column; }
-    .opce-field { display:flex; gap:8px; align-items:center; width:100%; }
-    .opce-field input[type="text"] { flex:1; padding:8px 10px; border:2px solid #000; border-radius:10px; font-family:var(--op-font); }
-    .opce-small { font-size:12px; color:#000; }
-    .opce-confirm { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
-    .opce-confirm input { padding:8px 10px; border:2px solid #000; border-radius:8px; width:240px; }
-
-    .opce-embed-preview { width:100%; border-radius:10px; padding:10px; background:#f7f7f7; border:1px solid #ddd; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; white-space:pre-wrap; }
-
-    /* TOAST (quick) */
-    .opce-toast {
-      position: fixed; top: 14px; left: 50%; transform: translateX(-50%) translateY(-10px);
-      background: #fff; color: #000; border: 3px solid #000; border-radius: 10px; padding: 8px 12px; font-weight:800;
-      z-index: 2147483647; box-shadow: var(--op-shadow); font-family: var(--op-font); opacity:0; animation: opceToastIn .28s ease forwards, opceToastOut .6s ease 3.0s forwards;
-    }
-    @keyframes opceToastIn { to { opacity: 1; transform: translateX(-50%) translateY(0);} }
-    @keyframes opceToastOut { to { opacity: 0; transform: translateX(-50%) translateY(-10px);} }
-
-    /* Responsive adjustments for mobile (preserve look) */
-    @media (max-width: 640px) {
-      .opce-panel {
-        right: 50%;
-        left: 50%;
-        transform: translate(-50%, -10px) scale(1);
-        bottom: auto;
-        top: 8vh;
-        width: 92vw;
-        border-radius: 14px;
+    // Add Styles
+    GM_addStyle(`
+      #cookieToggle {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 99999;
+        background: #111;
+        border: 2px solid white;
+        color: white;
+        font-size: 18px;
+        padding: 10px 14px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-family: 'Arial Black', sans-serif;
+        box-shadow: 0 0 12px rgba(255,255,255,0.7);
+        transition: transform 0.2s ease;
       }
-      .opce-header { padding: 10px 12px; }
-      .opce-body { padding: 10px 12px 12px 12px; }
-      .opce-textarea { width: 100%; min-height: 80px; }
-      .opce-btn { padding: 10px 14px; font-size: 14px; }
-      .opce-btn-ghost { padding: 10px 14px; }
-      .opce-input, .opce-number { padding: 10px 12px; font-size: 14px; }
-      .opce-table { min-width: 560px; }
-      .opce-table td { padding: 10px 8px; }
-      .opce-webhook { padding: 10px; }
-      .opce-confirm input { width: 100%; max-width: none; }
-      .opce-launcher { width: 64px; height: 64px; font-size: 28px; right: 12px; bottom: 12px; }
-    }
-
-    /* small screens landscape tweaks */
-    @media (max-height: 420px) and (orientation: landscape) {
-      .opce-panel { top: 12px; right: 12px; left: auto; width: 60vw; bottom: auto; }
-    }
-  `);
-
-  // ---------- Utilities ----------
-  const $ = (sel, ctx) => (ctx || document).querySelector(sel);
-  const el = (tag, cls, html) => { const d = document.createElement(tag); if (cls) d.className = cls; if (html !== undefined) d.innerHTML = html; return d; };
-
-  function toast(msg) {
-    const t = el('div', 'opce-toast', msg);
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3400);
-  }
-
-  function getCookies() {
-    const obj = {};
-    const raw = document.cookie || "";
-    raw.split(/; */).filter(Boolean).forEach(pair => {
-      const idx = pair.indexOf("=");
-      const name = decodeURIComponent(idx > -1 ? pair.slice(0, idx) : pair);
-      const val  = idx > -1 ? decodeURIComponent(pair.slice(idx + 1)) : "";
-      obj[name] = val;
-    });
-    return obj;
-  }
-  function setCookie(name, value, days = 7, path = "/") {
-    const d = new Date(); d.setTime(d.getTime() + days * 24*60*60*1000); const expires = "expires=" + d.toUTCString();
-    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; ${expires}; path=${path}`;
-  }
-  function deleteCookie(name, path = "/") {
-    document.cookie = `${encodeURIComponent(name)}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}`;
-  }
-
-  // ---------- Build UI ----------
-  function build() {
-    // Launcher
-    const launcher = el('div','opce-launcher','🍪');
-    launcher.title = 'OP Cookie Editor';
-    document.body.appendChild(launcher);
-
-    // Overlay and panel
-    const overlay = el('div','opce-overlay');
-    document.body.appendChild(overlay);
-
-    const panel = el('div','opce-panel');
-    const hdr = el('div','opce-header');
-    const left = el('div','','<div class="opce-title">OP Cookie Editor</div><div class="opce-subtle">Personal use only — do not send others\\' cookies.</div>');
-    const actions = el('div','opce-actions');
-    const btnMin = el('button','opce-btn opce-btn-ghost','Minimize');
-    const btnClose = el('button','opce-btn','Close');
-    actions.append(btnMin, btnClose);
-    hdr.append(left, actions);
-
-    const body = el('div','opce-body');
-
-    // Table
-    const tableWrap = el('div','opce-table-wrap');
-    const table = el('table','opce-table');
-    const thead = el('thead');
-    thead.innerHTML = `<tr><th style="width:4%"></th><th style="width:24%">Name</th><th style="width:42%">Value</th><th style="width:10%">Days</th><th style="width:20%">Actions</th></tr>`;
-    const tbody = el('tbody');
-    table.append(thead, tbody);
-    tableWrap.appendChild(table);
-
-    // Footer / controls
-    const foot = el('div','opce-foot');
-    const btnAdd = el('button','opce-btn','Add Cookie');
-    const btnRefresh = el('button','opce-btn opce-btn-ghost','Refresh');
-    const btnExport = el('button','opce-btn opce-btn-ghost','Export JSON');
-    const btnCopyAll = el('button','opce-btn opce-btn-ghost','Copy');
-    foot.append(btnAdd, btnRefresh, btnExport, btnCopyAll);
-
-    // Import area
-    const importWrap = el('div','opce-import');
-    const ta = el('textarea','opce-textarea','');
-    ta.placeholder = '{ "name": "value", ... }  (paste here and click Import)';
-    const btnImport = el('button','opce-btn','Import');
-    importWrap.append(ta, btnImport);
-
-    // Webhook area (safe/manual)
-    const webhookBox = el('div','opce-webhook');
-    webhookBox.innerHTML = `<div style="font-weight:800;">Webhook (optional — manual use)</div>
-      <div class="opce-field"><input type="text" id="opce-webhook-url" placeholder="Paste your Discord webhook URL here (optional)"></div>
-      <div class="opce-small">Only use your own webhook. This UI will never send cookie data without you selecting cookies and typing the confirmation phrase below.</div>
-    `;
-    // Test + send buttons + confirm input + preview
-    const whControls = el('div','',`
-      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
-        <button id="opce-webhook-test" class="opce-btn opce-btn-ghost">Test Webhook (no cookies)</button>
-        <button id="opce-webhook-send" class="opce-btn" disabled>Send Selected Cookies</button>
-      </div>
-      <div class="opce-confirm">
-        <input id="opce-consent-input" placeholder="Type I CONSENT to enable sending" />
-        <div style="font-size:12px; color:#000; font-weight:700;">(Required)</div>
-      </div>
-      <div style="margin-top:8px;"><div style="font-weight:800;">Embed Preview</div><div id="opce-embed-preview" class="opce-embed-preview">No webhook test yet</div></div>
+      #cookieToggle:hover {
+        transform: scale(1.1);
+      }
+      #cookieEditor {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 90%;
+        max-width: 400px;
+        height: 60%;
+        background: #fff;
+        border: 3px solid black;
+        border-radius: 12px;
+        z-index: 99999;
+        display: none;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        animation: fadeIn 0.3s ease-out;
+      }
+      #cookieEditorHeader {
+        background: black;
+        color: white;
+        padding: 10px;
+        font-size: 16px;
+        text-align: center;
+        font-family: 'Arial Black', sans-serif;
+        border-bottom: 2px solid white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      #cookieEditorBody {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 14px;
+        white-space: pre-wrap;
+      }
+      #cookieEditorFooter {
+        padding: 8px;
+        text-align: center;
+        border-top: 2px solid black;
+        background: #f2f2f2;
+      }
+      #cookieEditorFooter button {
+        margin: 5px;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      #copyCookies {
+        background: #222;
+        color: white;
+      }
+      #clearCookies {
+        background: crimson;
+        color: white;
+      }
+      .closeBtn {
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 0 8px;
+      }
+      @keyframes fadeIn {
+        from {opacity: 0; transform: translateY(20px);}
+        to {opacity: 1; transform: translateY(0);}
+      }
     `);
-    webhookBox.appendChild(whControls);
 
-    body.append(tableWrap, foot, importWrap, webhookBox, el('div','opce-note',`<b>Notes:</b> You can only see/edit cookies accessible to JavaScript on <code>${location.hostname}</code>. HttpOnly cookies are not shown.`));
+    // Add toggle button
+    const toggleBtn = document.createElement("div");
+    toggleBtn.id = "cookieToggle";
+    toggleBtn.innerText = "⚙️";
+    document.body.appendChild(toggleBtn);
 
-    panel.append(hdr, body);
-    document.body.appendChild(panel);
+    // Add editor UI
+    const editor = document.createElement("div");
+    editor.id = "cookieEditor";
+    editor.innerHTML = `
+      <div id="cookieEditorHeader">
+        <span>🍪 Cookie Editor (Personal Use Only)</span>
+        <span class="closeBtn" id="closeCookieEditor">✖</span>
+      </div>
+      <div id="cookieEditorBody">Loading cookies...</div>
+      <div id="cookieEditorFooter">
+        <button id="copyCookies">Copy</button>
+        <button id="clearCookies">Clear</button>
+      </div>
+    `;
+    document.body.appendChild(editor);
 
-    // ---------- Table painting ----------
-    function paintRows() {
-      tbody.innerHTML = '';
-      const cookies = getCookies();
-      const names = Object.keys(cookies).sort();
-      if (names.length === 0) {
-        const r = el('tr'); r.innerHTML = `<td colspan="5" style="text-align:center; font-weight:800;">No cookies visible to JavaScript on this page.</td>`;
-        tbody.appendChild(r); return;
-      }
-      names.forEach(name => {
-        const val = cookies[name];
-        const tr = el('tr');
-        // checkbox cell
-        const cbTd = el('td'); const cb = el('input'); cb.type = 'checkbox'; cb.className = 'opce-checkbox'; cb.dataset.cookieName = name; cbTd.appendChild(cb);
-        const tdName = el('td'); const inpName = el('input','opce-input'); inpName.value = name; tdName.appendChild(inpName);
-        const tdVal = el('td'); const inpVal = el('input','opce-input'); inpVal.value = val; tdVal.appendChild(inpVal);
-        const tdDays = el('td'); const inpDays = el('input','opce-number'); inpDays.type='number'; inpDays.min='1'; inpDays.value='7'; tdDays.appendChild(inpDays);
-        const tdAct = el('td'); const actionsWrap = el('div','opce-row-actions');
-        const bSave = el('button','opce-btn opce-btn-ghost','Save'); const bDel = el('button','opce-btn','Delete');
-        bSave.addEventListener('click', ()=>{ const n=inpName.value.trim(); if(!n){ toast('Name required'); return;} setCookie(n, inpVal.value, parseInt(inpDays.value,10)||7, '/'); toast('Saved'); paintRows(); });
-        bDel.addEventListener('click', ()=>{ const n=inpName.value.trim(); if(!n) return; deleteCookie(n,'/'); toast('Deleted'); paintRows(); });
-        actionsWrap.append(bSave, bDel); tdAct.appendChild(actionsWrap);
-
-        tr.append(cbTd, tdName, tdVal, tdDays, tdAct);
-        tbody.appendChild(tr);
-      });
+    // Functions
+    function refreshCookies() {
+      document.getElementById("cookieEditorBody").innerText = document.cookie || "No cookies found.";
     }
 
-    paintRows();
-
-    // ---------- Events ----------
-    btnRefresh.addEventListener('click', paintRows);
-    btnAdd.addEventListener('click', ()=> {
-      const tr = el('tr');
-      tr.innerHTML = `<td></td><td><input class="opce-input" placeholder="name"></td><td><input class="opce-input" placeholder="value"></td><td><input class="opce-number" type="number" value="7" style="width:80px"></td>
-        <td><div class="opce-row-actions"><button class="opce-btn">Create</button><button class="opce-btn opce-btn-ghost">Cancel</button></div></td>`;
-      const createBtn = tr.querySelector('.opce-btn');
-      const cancelBtn = tr.querySelector('.opce-btn-ghost');
-      createBtn.addEventListener('click', ()=> {
-        const name = tr.querySelector('.opce-input').value.trim();
-        const value = tr.querySelectorAll('.opce-input')[1].value;
-        const days = parseInt(tr.querySelector('.opce-number').value,10)||7;
-        if(!name){ toast('Name required'); return; }
-        setCookie(name, value, days, '/'); toast('Created'); paintRows();
-      });
-      cancelBtn.addEventListener('click', ()=> tr.remove());
-      tbody.prepend(tr);
-    });
-
-    btnExport.addEventListener('click', ()=> {
-      const data = getCookies(); const json = JSON.stringify(data, null, 2); ta.value = json; try { if(typeof GM_setClipboard==='function') GM_setClipboard(json); }catch{} toast('Exported to textarea (and copied if allowed)');
-    });
-
-    btnCopyAll.addEventListener('click', ()=> {
-      const data = getCookies(); const json = JSON.stringify(data, null, 2);
-      try { if(typeof GM_setClipboard==='function'){ GM_setClipboard(json); toast('Copied JSON to clipboard'); } else { ta.value = json; toast('Clipboard unavailable; placed JSON in textarea'); } } catch(e){ ta.value = json; toast('Placed JSON in textarea'); }
-    });
-
-    btnImport.addEventListener('click', ()=> {
-      const txt = ta.value.trim(); if(!txt){ toast('Paste JSON first'); return; }
-      try { const obj = JSON.parse(txt); let c=0; Object.entries(obj).forEach(([k,v])=>{ setCookie(k,String(v),7,'/'); c++; }); toast(\`Imported \${c} cookies\`); paintRows(); } catch(e){ toast('Invalid JSON'); }
-    });
-
-    // Close / Minimize / Launcher behavior
-    btnClose.addEventListener('click', ()=>{ panel.style.display='none'; overlay.style.display='none'; });
-    btnMin.addEventListener('click', ()=>{ panel.style.display='none'; overlay.style.display='none'; });
-
-    launcher.addEventListener('click', (e)=>{ e.stopPropagation(); if(panel.style.display==='block'){ panel.style.display='none'; overlay.style.display='none'; } else { panel.style.display='block'; overlay.style.display='block'; } });
-
-    overlay.addEventListener('click', (e)=>{ if(e.target===overlay){ panel.style.display='none'; overlay.style.display='none'; } });
-
-    // ---------- Draggable launcher (mouse + touch) ----------
-    (function makeDraggable(elm) {
-      let dragging=false, sx=0, sy=0, ox=0, oy=0;
-      const onDown = (e) => {
-        const p = e.touches ? e.touches[0] : e;
-        dragging = true;
-        sx = p.clientX; sy = p.clientY;
-        const rect = elm.getBoundingClientRect();
-        ox = rect.left; oy = rect.top;
-        elm.style.transition = "none";
-        e.preventDefault();
-      };
-      const onMove = (e) => {
-        if(!dragging) return;
-        const p = e.touches ? e.touches[0] : e;
-        const nx = ox + (p.clientX - sx);
-        const ny = oy + (p.clientY - sy);
-        // keep inside viewport
-        const maxLeft = window.innerWidth - elm.offsetWidth - 6;
-        const maxTop = window.innerHeight - elm.offsetHeight - 6;
-        elm.style.left = Math.max(6, Math.min(maxLeft, nx)) + "px";
-        elm.style.top  = Math.max(6, Math.min(maxTop, ny)) + "px";
-        elm.style.right = "auto"; elm.style.bottom = "auto";
-      };
-      const onUp = () => { dragging=false; elm.style.transition = ""; };
-      elm.addEventListener('mousedown', onDown);
-      elm.addEventListener('touchstart', onDown, {passive:false});
-      window.addEventListener('mousemove', onMove, {passive:false});
-      window.addEventListener('touchmove', onMove, {passive:false});
-      window.addEventListener('mouseup', onUp);
-      window.addEventListener('touchend', onUp);
-    })(launcher);
-
-    // ---------- Webhook logic (safe/manual) ----------
-    const webhookInput = panel.querySelector('#opce-webhook-url');
-    const webhookTestBtn = panel.querySelector('#opce-webhook-test');
-    const webhookSendBtn = panel.querySelector('#opce-webhook-send');
-    const consentInput = panel.querySelector('#opce-consent-input');
-    const embedPreview = panel.querySelector('#opce-embed-preview');
-
-    function buildEmbedPayload(title, description, fields = []) {
-      return {
-        username: "OP Cookie Editor",
-        embeds: [{
-          title: title || "OP Cookie Editor",
-          description: description || "",
-          color: 0x111111,
-          fields: fields.map(f => ({ name: f.name, value: f.value, inline: false })),
-          timestamp: new Date().toISOString()
-        }]
-      };
-    }
-
-    webhookTestBtn.addEventListener('click', async () => {
-      const url = (webhookInput && webhookInput.value || "").trim();
-      if (!url) { toast('Paste a webhook URL first'); return; }
-      if (!/^https?:\/\/(canary\\.|ptb\\.)?discord(app)?\\.com\\/api\\/webhooks\\/\\d+\\/[A-Za-z0-9_\\-]+/.test(url)) {
-        toast('Webhook URL looks invalid for Discord');
-        return;
+    // Toggle open/close
+    toggleBtn.addEventListener("click", () => {
+      if (editor.style.display === "flex") {
+        editor.style.display = "none";
+      } else {
+        refreshCookies();
+        editor.style.display = "flex";
       }
-      const payload = buildEmbedPayload("Webhook Test", "This is a harmless test from your OP Cookie Editor. No cookies were included.");
-      embedPreview.textContent = JSON.stringify(payload, null, 2);
-      try {
-        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (res.ok) { toast('Test webhook sent successfully'); } else { toast('Webhook returned ' + res.status); }
-      } catch (e) { toast('Webhook send failed (network or CORS)'); console.error(e); }
     });
 
-    // Consent: require exact phrase
-    consentInput.addEventListener('input', () 
+    // Close button
+    document.getElementById("closeCookieEditor").addEventListener("click", () => {
+      editor.style.display = "none";
+    });
+
+    // Copy button
+    document.getElementById("copyCookies").addEventListener("click", () => {
+      navigator.clipboard.writeText(document.cookie).then(() => {
+        alert("Cookies copied!");
+      });
+    });
+
+    // Clear button
+    document.getElementById("clearCookies").addEventListener("click", () => {
+      if (confirm("Clear all cookies for this site?")) {
+        const cookies = document.cookie.split(";");
+        for (let c of cookies) {
+          document.cookie = c.split("=")[0].trim() + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        }
+        refreshCookies();
+      }
+    });
+})();
